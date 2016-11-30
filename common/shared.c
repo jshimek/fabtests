@@ -1318,16 +1318,18 @@ static int ft_get_cq_comp(struct fid_cq *cq, uint64_t *cur,
 int ft_get_rx_comp(uint64_t total)
 {
 	int ret = FI_SUCCESS;
+	int current = 0;
 
 	if (rxcq) {
 		ret = ft_get_cq_comp(rxcq, &rx_cq_cntr, total, timeout);
 	} else if (rxcntr) {
-		while (fi_cntr_read(rxcntr) < total) {
+		if (cntr_attr.wait_obj != FI_WAIT_NONE ||
+		    cntr_attr.wait_obj != FI_WAIT_SET) {
 			ret = fi_cntr_wait(rxcntr, total, timeout);
-			if (ret)
-				FT_PRINTERR("fi_cntr_wait", ret);
-			else
-				break;
+		} else {
+			while (current < total)
+				current = fi_cntr_read(rxcntr);
+
 		}
 	} else {
 		FT_ERR("Trying to get a RX completion when no RX CQ or counter were opened");
@@ -1338,14 +1340,20 @@ int ft_get_rx_comp(uint64_t total)
 
 int ft_get_tx_comp(uint64_t total)
 {
-	int ret;
+	int ret, current = 0;
 
 	if (txcq) {
 		ret = ft_get_cq_comp(txcq, &tx_cq_cntr, total, -1);
 	} else if (txcntr) {
-		ret = fi_cntr_wait(txcntr, total, -1);
-		if (ret)
-			FT_PRINTERR("fi_cntr_wait", ret);
+		if (cntr_attr.wait_obj != FI_WAIT_NONE ||
+		    cntr_attr.wait_obj != FI_WAIT_SET) {
+			ret = fi_cntr_wait(txcntr, total, -1);
+			if (ret)
+				FT_PRINTERR("fi_cntr_wait", ret);
+		} else {
+			while (current < total)
+				current = fi_cntr_read(txcntr);
+		}
 	} else {
 		FT_ERR("Trying to get a TX completion when no TX CQ or counter were opened");
 		ret = -FI_EOTHER;

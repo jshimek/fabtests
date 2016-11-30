@@ -76,7 +76,8 @@ int main(int argc, char **argv)
 			break;
 		case '?':
 		case 'h':
-			ft_usage(argv[0], "A simple MSG client-sever example.");
+			ft_usage(argv[0],
+				 "A simple MSG client-server example.");
 			return EXIT_FAILURE;
 		}
 	}
